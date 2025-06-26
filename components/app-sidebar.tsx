@@ -79,12 +79,12 @@ const authItems = [
     icon: LogIn,
     authRequired: false,
   },
-  {
-    title: "Cadastre-se",
-    url: "/auth/signup",
-    icon: UserPlus,
-    authRequired: false,
-  },
+  // {
+  //   title: "Cadastre-se",
+  //   url: "/auth/signup",
+  //   icon: UserPlus,
+  //   authRequired: false,
+  // },
 ]
 
 export function AppSidebar() {
