@@ -20,7 +20,7 @@ import { supabase } from "@/lib/supabase"
 const accessoryTypes = [
   { id: "teclado", name: "Teclado" },
   { id: "mouse", name: "Mouse" },
-  { id: "teclado_mouse", name: "Teclado + Mouse" },
+  { id: "base de notebook", name: "Base para notebook" },
   { id: "fone", name: "Fone de Ouvido" },
   { id: "webcam", name: "Webcam" },
   { id: "mousepad", name: "Mousepad" },
@@ -43,6 +43,8 @@ export default function GenerateTermsPage() {
   const [availableAssetsByType, setAvailableAssetsByType] = useState<any>({})
   const [loading, setLoading] = useState(true)
   const [today, setToday] = useState("")
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([])
+  const [departmentName, setDepartmentName] = useState("")
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +55,9 @@ export default function GenerateTermsPage() {
       const { data: assetsData, error: assetsError } = await supabase
         .from("assets")
         .select("id, name, type, serial_number, status")
+      const { data: departmentsData, error: departmentsError } = await supabase
+        .from("departments")
+        .select("id, name")
 
       if (employeesError) {
         console.error("Erro ao buscar funcionários:", employeesError)
@@ -85,6 +90,9 @@ export default function GenerateTermsPage() {
         })
         setAvailableAssetsByType(categorizedAssets)
       }
+
+      if (!departmentsError && departmentsData) setDepartments(departmentsData)
+
       setLoading(false)
     }
     fetchData()
@@ -99,6 +107,8 @@ export default function GenerateTermsPage() {
 
     if (employee) {
       setSelectedEmployeeData(employee)
+      const dep = departments.find((d) => d.id === employee.department)
+      setDepartmentName(dep ? dep.name : "")
 
       // Pre-selecionar acessórios com base nos dados do funcionário
       const preSelectedAccs: string[] = []
@@ -155,8 +165,9 @@ export default function GenerateTermsPage() {
       setSelectedAssets([])
       setShowAssetSelection(false)
       setSelectedAccessories([]) // Clear accessories when no employee is selected
+      setDepartmentName("")
     }
-  }, [selectedEmployeeId, termType, employees])
+  }, [selectedEmployeeId, termType, employees, departments])
 
   const handleTermTypeChange = (value: "responsibility" | "requisition" | "return") => {
     setTermType(value)
@@ -221,7 +232,7 @@ export default function GenerateTermsPage() {
     ? `
 TERMO DE RESPONSABILIDADE DE USO DE EQUIPAMENTOS DE INFORMÁTICA
 
-Eu, ${selectedEmployeeData.name}, CPF ${selectedEmployeeData.cpf}, funcionário(a) do departamento de ${selectedEmployeeData.department}, 
+Eu, ${selectedEmployeeData.name}, CPF ${selectedEmployeeData.cpf}, funcionário(a) do departamento de ${departmentName}, 
 ocupando o cargo de ${selectedEmployeeData.position}, declaro ter recebido os equipamentos de informática abaixo relacionados 
 para uso exclusivo nas atividades profissionais.
 
@@ -259,7 +270,7 @@ TERMO DE REQUISIÇÃO DE ATIVOS E ACESSÓRIOS DE TI
 DADOS DO SOLICITANTE:
 Nome: ${selectedEmployeeData.name}
 CPF: ${selectedEmployeeData.cpf}
-Departamento: ${selectedEmployeeData.department}
+Departamento: ${departmentName}
 Cargo: ${selectedEmployeeData.position}
 E-mail: ${selectedEmployeeData.email}
 
@@ -297,7 +308,7 @@ Data: ___/___/____                       Data: ___/___/____
     ? `
 TERMO DE DEVOLUÇÃO DE EQUIPAMENTOS DE INFORMÁTICA
 
-Eu, ${selectedEmployeeData.name}, CPF ${selectedEmployeeData.cpf}, funcionário(a) do departamento de ${selectedEmployeeData.department}, 
+Eu, ${selectedEmployeeData.name}, CPF ${selectedEmployeeData.cpf}, funcionário(a) do departamento de ${departmentName}, 
 ocupando o cargo de ${selectedEmployeeData.position}, declaro estar devolvendo os equipamentos de informática abaixo relacionados 
 à empresa, em bom estado de conservação e funcionamento, salvo observações.
 
