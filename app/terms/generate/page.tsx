@@ -16,6 +16,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const accessoryTypes = [
   { id: "teclado", name: "Teclado" },
@@ -207,7 +209,7 @@ export default function GenerateTermsPage() {
     window.print()
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!selectedEmployeeId) {
       toast.error("Selecione um funcionário")
       return
@@ -216,8 +218,18 @@ export default function GenerateTermsPage() {
       toast.error("Selecione pelo menos um ativo ou acessório")
       return
     }
-
-    toast.success("Download iniciado!")
+    const input = document.getElementById('termo-impressao');
+    if (input) {
+      const canvas = await html2canvas(input);
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF();
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('termo.pdf');
+      toast.success('Download iniciado!');
+    }
   }
 
   const allSelectedItems = [
@@ -232,7 +244,7 @@ export default function GenerateTermsPage() {
     ? `
 TERMO DE RESPONSABILIDADE DE USO DE EQUIPAMENTOS DE INFORMÁTICA
 
-Eu, ${selectedEmployeeData.name}, CPF ${selectedEmployeeData.cpf}, funcionário(a) do departamento de ${departmentName}, 
+Eu, ${selectedEmployeeData.name}, CPF ${selectedEmployeeData.cpf}, funcionário(a) do departamento ${departmentName}, 
 ocupando o cargo de ${selectedEmployeeData.position}, declaro ter recebido os equipamentos de informática abaixo relacionados 
 para uso exclusivo nas atividades profissionais.
 
@@ -328,6 +340,13 @@ Assinatura do Responsável TI
 Data: ${today}
 `
     : ""
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `@media print { body * { visibility: hidden; } #termo-impressao, #termo-impressao * { visibility: visible; } #termo-impressao { position: absolute; left: 0; top: 0; width: 100vw; } }`;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, []);
 
   if (loading) {
     return (
@@ -648,13 +667,15 @@ Data: ${today}
             </CardHeader>
             <CardContent>
               <div className="bg-white border rounded-lg p-6 min-h-[600px] print:shadow-none print:border-none">
-                <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-                  {termType === "responsibility"
-                    ? responsibilityTermText
-                    : termType === "requisition"
-                      ? requisitionTermText
-                      : returnTermText}
-                </pre>
+                <div id="termo-impressao">
+                  <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
+                    {termType === "responsibility"
+                      ? responsibilityTermText
+                      : termType === "requisition"
+                        ? requisitionTermText
+                        : returnTermText}
+                  </pre>
+                </div>
               </div>
             </CardContent>
           </Card>
